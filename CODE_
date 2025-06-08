@@ -1,0 +1,186 @@
+class OfficialNode:
+    """Узел для представления чиновника в иерархии министерства."""
+
+    def __init__(self, id, bribe):
+        self.id = id
+        self.bribe = bribe
+        self.__children = []
+
+    def add_child(self, node):
+        """Добавляет подчиненного чиновника."""
+        self.__children.append(node)
+
+    def get_children(self):
+        """Возвращает список подчиненных."""
+        return self.__children.copy()
+
+    def __repr__(self):
+        return f"Official(ID={self.id}, Bribe={self.bribe})"
+
+
+class MinistryHierarchy:
+    """Класс для управления иерархией чиновников и расчета оптимального пути взяток."""
+
+    def __init__(self):
+        self.__root = None
+        self._officials = {}
+
+    def add_official(self, id, bribe, boss_id):
+        """Метод для добавления чиновника в иерархию."""
+        try:
+
+            id = self.__validate_id(id)
+
+            bribe = self.__validate_bribe(bribe)
+
+            boss_id = self.__validate_boss_id(boss_id)
+
+
+            if id in self._officials:
+                raise ValueError(f"Чиновник с ID {id} уже существует")
+
+            new_official = OfficialNode(id, bribe)
+            self._officials[id] = new_official
+
+            if boss_id is None:
+                if self.__root is not None:
+                    raise ValueError("Главный чиновник уже назначен")
+                self.__root = new_official
+            else:
+                if boss_id not in self._officials:
+                    raise ValueError(f"Начальник с ID {boss_id} не найден")
+                self._officials[boss_id].add_child(new_official)
+
+            print(f"Чиновник {id} успешно добавлен")
+            return True
+
+        except ValueError as e:
+            print(f"Ошибка: {e}")
+            return False
+
+    def __validate_id(self, id):
+        """Метод для проверки ID чиновника."""
+        try:
+            id_num = int(id)
+            if id_num <= 0:
+                raise ValueError("ID должен быть положительным числом")
+            return id_num
+        except ValueError:
+            raise ValueError("ID должен быть целым числом")
+
+    def __validate_bribe(self, bribe):
+        """Метод для проверки размера взятки."""
+        try:
+            bribe_num = int(bribe)
+            if bribe_num < 0:
+                raise ValueError("Размер взятки не может быть отрицательным")
+            return bribe_num
+        except ValueError:
+            raise ValueError("Взятка должна быть целым числом")
+
+    def __validate_boss_id(self, boss_id):
+        """Метод для проверки ID начальника."""
+        if boss_id == "0":
+            return None
+        try:
+            boss_id_num = int(boss_id)
+            if boss_id_num <= 0:
+                raise ValueError("ID начальника должен быть положительным")
+            return boss_id_num
+        except ValueError:
+            raise ValueError("ID начальника должен быть числом (0 для главного)")
+
+    def calculate_min_bribe(self):
+        """Метод для расчета минимальной суммы взяток."""
+        if not self._officials or self.__root is None:
+            raise ValueError("В министерстве нет чиновников")
+
+        total, path = self.__calculate_path(self.__root)
+        return (total, path[::-1])
+
+    def __calculate_path(self, node):
+        """Метод для рекурсивного расчета оптимального пути."""
+        if not node.get_children():
+            return (node.bribe, [node.id])
+
+        children_results = []
+        for child in node.get_children():
+            child_bribe, child_path = self.__calculate_path(child)
+            children_results.append((child_bribe, child_path))
+
+        min_child_bribe, min_child_path = min(children_results, key=lambda x: x[0])
+
+        if node.bribe < min_child_bribe:
+            return (node.bribe, [node.id])
+        else:
+            return (node.bribe + min_child_bribe, [node.id] + min_child_path)
+
+    def get_all_officials(self):
+        """Метод для получения информации о чиновниках."""
+        return {
+            id: (node.bribe, [child.id for child in node.get_children()])
+            for id, node in self._officials.items()
+        }
+
+    def _get_official_info(self, id):
+        """Метод для получения информации о конкретном чиновнике."""
+        if id not in self._officials:
+            raise ValueError(f"Чиновник с ID {id} не найден")
+        node = self._officials[id]
+        return (node.bribe, [child.id for child in node.get_children()])
+
+
+def main():
+    print("Программа для расчета минимальной взятки для получения лицензии")
+    ministry = MinistryHierarchy()
+
+    while True:
+        print("\nМеню:")
+        print("1. Добавить чиновника")
+        print("2. Показать всех чиновников")
+        print("3. Рассчитать минимальную взятку")
+        print("4. Выйти")
+
+        choice = input("Выберите пункт меню (1-4): ").strip()
+
+        if choice == "1":
+            print("\nДобавление чиновника")
+            print("Формат ввода: ID,взятка,ID_начальника (0 для главного)")
+            user_input = input("> ").strip()
+
+            parts = user_input.split(',')
+            if len(parts) != 3:
+                print("Ошибка: нужно ввести ровно 3 значения через запятую")
+                continue
+
+            id, bribe, boss_id = parts
+            ministry.add_official(id.strip(), bribe.strip(), boss_id.strip())
+
+        elif choice == "2":
+            print("\nСписок всех чиновников:")
+            officials = ministry.get_all_officials()
+            if not officials:
+                print("В министерстве нет чиновников")
+            else:
+                for id, (bribe, subordinates) in officials.items():
+                    subs = ", ".join(map(str, subordinates)) if subordinates else "нет"
+                    print(f"ID: {id}, Взятка: {bribe} у.е., Подчинённые: {subs}")
+
+        elif choice == "3":
+            try:
+                total, path = ministry.calculate_min_bribe()
+                print(f"\nМинимальная сумма взятки: {total} у.е.")
+                print("Оптимальный путь подписей:", " → ".join(map(str, path)))
+            except ValueError as e:
+                print(f"Ошибка: {e}")
+
+        elif choice == "4":
+            print("Выход из программы")
+            break
+
+        else:
+            print("Некорректный выбор. Пожалуйста, выберите пункт от 1 до 4")
+
+
+if __name__ == "__main__":
+    main()
