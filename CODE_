@@ -28,13 +28,9 @@ class MinistryHierarchy:
     def add_official(self, id, bribe, boss_id):
         """Метод для добавления чиновника в иерархию."""
         try:
-
             id = self.__validate_id(id)
-
             bribe = self.__validate_bribe(bribe)
-
             boss_id = self.__validate_boss_id(boss_id)
-
 
             if id in self._officials:
                 raise ValueError(f"Чиновник с ID {id} уже существует")
@@ -71,12 +67,12 @@ class MinistryHierarchy:
     def __validate_bribe(self, bribe):
         """Метод для проверки размера взятки."""
         try:
-            bribe_num = int(bribe)
+            bribe_num = float(bribe)
             if bribe_num < 0:
                 raise ValueError("Размер взятки не может быть отрицательным")
             return bribe_num
         except ValueError:
-            raise ValueError("Взятка должна быть целым числом")
+            raise ValueError("Взятка должна быть числом (целым или дробным)")
 
     def __validate_boss_id(self, boss_id):
         """Метод для проверки ID начальника."""
@@ -121,13 +117,6 @@ class MinistryHierarchy:
             id: (node.bribe, [child.id for child in node.get_children()])
             for id, node in self._officials.items()
         }
-
-    def _get_official_info(self, id):
-        """Метод для получения информации о конкретном чиновнике."""
-        if id not in self._officials:
-            raise ValueError(f"Чиновник с ID {id} не найден")
-        node = self._officials[id]
-        return (node.bribe, [child.id for child in node.get_children()])
 
 
 def main():
