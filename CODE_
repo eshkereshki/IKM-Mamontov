@@ -1,13 +1,20 @@
 class OfficialNode:
-    """Узел для представления чиновника в иерархии министерства."""
+    """Узел для представления чиновника в иерархии министерства.
+
+    Attributes:
+        id (int): Уникальный идентификатор чиновника.
+        bribe (float): Размер взятки, требуемый чиновником.
+        __children (list[OfficialNode]): Список подчиненных чиновников.
+    """
 
     def __init__(self, id, bribe):
+        """Инициализирует узел чиновника."""
         self.id = id
         self.bribe = bribe
         self.__children = []
 
     def add_child(self, node):
-        """Добавляет подчиненного чиновника."""
+        """Добавляет подчиненного чиновника"""
         self.__children.append(node)
 
     def get_children(self):
@@ -15,18 +22,41 @@ class OfficialNode:
         return self.__children.copy()
 
     def __repr__(self):
+        """Возвращает строковое представление узла.
+
+        Returns:
+            str: Строка в формате 'Official(ID={id}, Bribe={bribe})'.
+        """
         return f"Official(ID={self.id}, Bribe={self.bribe})"
 
 
 class MinistryHierarchy:
-    """Класс для управления иерархией чиновников и расчета оптимального пути взяток."""
+    """Класс для управления иерархией чиновников и расчета оптимального пути взяток.
+
+    Attributes:
+        __root (OfficialNode): Корневой узел иерархии (главный чиновник).
+        _officials (dict[int, OfficialNode]): Словарь всех чиновников.
+    """
 
     def __init__(self):
+        """Инициализирует пустую иерархию чиновников."""
         self.__root = None
         self._officials = {}
 
     def add_official(self, id, bribe, boss_id):
-        """Метод для добавления чиновника в иерархию."""
+        """Добавляет чиновника в иерархию.
+
+        Args:
+            id: Идентификатор чиновника.
+            bribe: Размер взятки.
+            boss_id: Идентификатор начальника ('0' для главного).
+
+        Returns:
+            bool: True если чиновник успешно добавлен, иначе False.
+
+        Raises:
+            ValueError: Если данные не прошли валидацию или чиновник уже существует.
+        """
         try:
             id = self.__validate_id(id)
             bribe = self.__validate_bribe(bribe)
@@ -55,7 +85,17 @@ class MinistryHierarchy:
             return False
 
     def __validate_id(self, id):
-        """Метод для проверки ID чиновника."""
+        """Проверяет валидность ID чиновника.
+
+        Args:
+            id: Идентификатор для проверки.
+
+        Returns:
+            int: Валидный числовой ID.
+
+        Raises:
+            ValueError: Если ID не является положительным целым числом.
+        """
         try:
             id_num = int(id)
             if id_num <= 0:
@@ -65,7 +105,17 @@ class MinistryHierarchy:
             raise ValueError("ID должен быть целым числом")
 
     def __validate_bribe(self, bribe):
-        """Метод для проверки размера взятки."""
+        """Проверяет валидность размера взятки.
+
+        Args:
+            bribe: Размер взятки для проверки.
+
+        Returns:
+            float: Валидный размер взятки.
+
+        Raises:
+            ValueError: Если взятка не является числом или отрицательна.
+        """
         try:
             bribe_num = float(bribe)
             if bribe_num < 0:
@@ -75,7 +125,17 @@ class MinistryHierarchy:
             raise ValueError("Взятка должна быть числом (целым или дробным)")
 
     def __validate_boss_id(self, boss_id):
-        """Метод для проверки ID начальника."""
+        """Проверяет валидность ID начальника.
+
+        Args:
+            boss_id: Идентификатор начальника для проверки.
+
+        Returns:
+            int | None: Валидный ID начальника или None для главного.
+
+        Raises:
+            ValueError: Если ID не соответствует требованиям.
+        """
         if boss_id == "0":
             return None
         try:
@@ -87,7 +147,14 @@ class MinistryHierarchy:
             raise ValueError("ID начальника должен быть числом (0 для главного)")
 
     def calculate_min_bribe(self):
-        """Метод для расчета минимальной суммы взяток."""
+        """Рассчитывает минимальную сумму взяток для получения лицензии.
+
+        Returns:
+            tuple[float, list[int]]: (минимальная сумма, список ID чиновников).
+
+        Raises:
+            ValueError: Если в министерстве нет чиновников.
+        """
         if not self._officials or self.__root is None:
             raise ValueError("В министерстве нет чиновников")
 
@@ -95,7 +162,14 @@ class MinistryHierarchy:
         return (total, path[::-1])
 
     def __calculate_path(self, node):
-        """Метод для рекурсивного расчета оптимального пути."""
+        """Рекурсивно рассчитывает оптимальный путь для узла.
+
+        Args:
+            node (OfficialNode): Узел для расчета.
+
+        Returns:
+            tuple[float, list[int]]: (сумма взяток, список ID чиновников).
+        """
         if not node.get_children():
             return (node.bribe, [node.id])
 
@@ -112,7 +186,12 @@ class MinistryHierarchy:
             return (node.bribe + min_child_bribe, [node.id] + min_child_path)
 
     def get_all_officials(self):
-        """Метод для получения информации о чиновниках."""
+        """Возвращает информацию о всех чиновниках.
+
+        Returns:
+            dict[int, tuple[float, list[int]]]: Словарь в формате:
+                {id: (bribe, [subordinate_ids])}
+        """
         return {
             id: (node.bribe, [child.id for child in node.get_children()])
             for id, node in self._officials.items()
@@ -120,6 +199,7 @@ class MinistryHierarchy:
 
 
 def main():
+    """Основная функция программы с пользовательским интерфейсом."""
     print("Программа для расчета минимальной взятки для получения лицензии")
     ministry = MinistryHierarchy()
 
