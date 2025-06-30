@@ -158,6 +158,9 @@ class MinistryHierarchy:
         if not self._officials or self.__root is None:
             raise ValueError("В министерстве нет чиновников")
 
+        if not self.__root.get_children():
+            return (self.__root.bribe, [self.__root.id])
+
         total, path = self.__calculate_path(self.__root)
         return (total, path[::-1])
 
@@ -180,7 +183,7 @@ class MinistryHierarchy:
 
         min_child_bribe, min_child_path = min(children_results, key=lambda x: x[0])
 
-        if node.bribe < min_child_bribe:
+        if node.bribe <= min_child_bribe:
             return (node.bribe, [node.id])
         else:
             return (node.bribe + min_child_bribe, [node.id] + min_child_path)
